@@ -6,7 +6,9 @@ import morgan from "morgan";
 import { prisma } from "./config/prisma";
 import authRoutes from "./modules/auth/auth.routes";
 import usersRoutes from "./modules/users/users.routes";
-
+import assemblyRoutes from "./modules/assembly/assembly.routes";
+import boothsRoutes from "./modules/booths/booths.routes";
+import volunteersRoutes from "./modules/volunteers/volunteers.routes";
 const app = express();
 
 app.use(helmet());
@@ -53,6 +55,9 @@ app.get("/api/health", async (_req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/users", usersRoutes);
+app.use("/api/assemblies", assemblyRoutes);
+app.use("/api/booths", boothsRoutes);
+app.use("/api/volunteers", volunteersRoutes);
 
 
 export default app;
