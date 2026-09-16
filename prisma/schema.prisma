@@ -1,0 +1,396 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ========================================
+// ENUMS
+// ========================================
+
+enum UserRole {
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum VolunteerStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum Classification {
+  GREEN
+  YELLOW
+  RED
+  BLACK
+}
+
+enum VerificationStatus {
+  VERIFIED
+  UNVERIFIED
+}
+
+enum VoteStatus {
+  PENDING
+  DONE
+}
+
+enum BoothStatus {
+  NOT_STARTED
+  VOTING_STARTED
+  PROBLEM
+}
+
+enum AlertType {
+  VOTING_SLOW
+  VOLUNTEER_ISSUE
+  BOOTH_ISSUE
+  OTHER
+}
+
+enum ImportStatus {
+  UPLOADED
+  REVIEWING
+  COMMITTED
+  FAILED
+}
+
+// ========================================
+// USER
+// ========================================
+
+model User {
+  id       String     @id @default(uuid())
+  name     String
+  email    String     @unique
+  password String
+  role     UserRole   @default(ADMIN)
+  status   UserStatus @default(ACTIVE)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  importBatches ImportBatch[]
+  auditLogs     AuditLog[]
+
+  @@index([role])
+  @@index([status])
+}
+
+// ========================================
+// ASSEMBLY
+// ========================================
+
+model Assembly {
+  id           String @id @default(uuid())
+  number       String
+  name         String
+  district     String
+  electionYear Int
+
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  booths Booth[]
+  voters Voter[]
+
+  @@index([number])
+  @@index([electionYear])
+}
+
+// ========================================
+// BOOTH
+// ========================================
+
+model Booth {
+  id          String  @id @default(uuid())
+  boothNumber String
+  name        String
+  village     String?
+
+  assemblyId String
+  assembly   Assembly @relation(fields: [assemblyId], references: [id])
+
+  volunteerId String?    @unique
+  volunteer   Volunteer? @relation(fields: [volunteerId], references: [id])
+
+  status BoothStatus @default(NOT_STARTED)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  voters Voter[]
+
+  electionDayUpdates ElectionDayUpdate[]
+  alerts             ElectionDayAlert[]
+
+  @@unique([assemblyId, boothNumber])
+  @@index([assemblyId])
+  @@index([village])
+}
+
+// ========================================
+// VOLUNTEER
+// ========================================
+
+model Volunteer {
+  id     String          @id @default(uuid())
+  name   String
+  mobile String          @unique
+  status VolunteerStatus @default(ACTIVE)
+
+  firebaseUid String? @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  booth Booth?
+
+  classificationHistory ClassificationHistory[]
+  electionDayUpdates    ElectionDayUpdate[]
+  electionDayAlerts     ElectionDayAlert[]
+
+  auditLogs AuditLog[]
+
+  @@index([status])
+}
+
+// ========================================
+// VOTER
+// ========================================
+
+model Voter {
+  id String @id @default(uuid())
+
+  // Official voter data
+  epic        String
+  name        String
+  fatherName  String?
+  motherName  String?
+  husbandName String?
+
+  houseNumber String?
+  village     String?
+  gender      String?
+  age         Int?
+
+  assemblyId String
+  assembly   Assembly @relation(fields: [assemblyId], references: [id])
+
+  boothId String
+  booth   Booth  @relation(fields: [boothId], references: [id])
+
+  // Field-team data
+  mobile String?
+
+  verification VerificationStatus @default(UNVERIFIED)
+
+  classification Classification?
+
+  // Election Day
+  voteStatus VoteStatus @default(PENDING)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  classificationHistory ClassificationHistory[]
+  auditLogs             AuditLog[]
+
+  @@unique([assemblyId, epic])
+  @@index([epic])
+  @@index([name])
+  @@index([mobile])
+  @@index([houseNumber])
+  @@index([boothId])
+  @@index([village])
+  @@index([classification])
+  @@index([verification])
+  @@index([gender])
+  @@index([age])
+}
+
+// ========================================
+// CLASSIFICATION HISTORY
+// ========================================
+
+model ClassificationHistory {
+  id String @id @default(uuid())
+
+  voterId String
+  voter   Voter  @relation(fields: [voterId], references: [id])
+
+  oldValue Classification?
+  newValue Classification
+
+  changedById String?
+  changedBy   Volunteer? @relation(fields: [changedById], references: [id])
+
+  changedAt DateTime @default(now())
+
+  @@index([voterId])
+  @@index([changedById])
+}
+
+// ========================================
+// IMPORT BATCH
+// ========================================
+
+model ImportBatch {
+  id String @id @default(uuid())
+
+  fileName String
+  fileType String
+
+  uploadedById String
+  uploadedBy   User   @relation(fields: [uploadedById], references: [id])
+
+  status ImportStatus @default(UPLOADED)
+
+  totalRows     Int @default(0)
+  validRows     Int @default(0)
+  duplicateRows Int @default(0)
+  errorRows     Int @default(0)
+  importedRows  Int @default(0)
+
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  errors ImportError[]
+
+  @@index([uploadedById])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// ========================================
+// IMPORT ERROR
+// ========================================
+
+model ImportError {
+  id String @id @default(uuid())
+
+  batchId String
+  batch   ImportBatch @relation(fields: [batchId], references: [id])
+
+  rowNumber    Int
+  rawData      Json
+  errorMessage String
+
+  createdAt DateTime @default(now())
+
+  @@index([batchId])
+}
+
+// ========================================
+// AUDIT LOG
+// ========================================
+
+model AuditLog {
+  id String @id @default(uuid())
+
+  action   String
+  entity   String
+  entityId String?
+
+  details Json?
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id])
+
+  volunteerId String?
+  volunteer   Volunteer? @relation(fields: [volunteerId], references: [id])
+
+  voterId String?
+  voter   Voter?  @relation(fields: [voterId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([action])
+  @@index([entity])
+  @@index([entityId])
+  @@index([userId])
+  @@index([volunteerId])
+  @@index([voterId])
+  @@index([createdAt])
+}
+
+// ========================================
+// ELECTION DAY UPDATE
+// ========================================
+
+model ElectionDayUpdate {
+  id String @id @default(uuid())
+
+  boothId String
+  booth   Booth  @relation(fields: [boothId], references: [id])
+
+  volunteerId String
+  volunteer   Volunteer @relation(fields: [volunteerId], references: [id])
+
+  turnout Int?
+  note    String?
+
+  createdAt DateTime @default(now())
+
+  @@index([boothId])
+  @@index([volunteerId])
+  @@index([createdAt])
+}
+
+// ========================================
+// ELECTION DAY ALERT
+// ========================================
+
+model ElectionDayAlert {
+  id String @id @default(uuid())
+
+  boothId String
+  booth   Booth  @relation(fields: [boothId], references: [id])
+
+  volunteerId String
+  volunteer   Volunteer @relation(fields: [volunteerId], references: [id])
+
+  type AlertType
+  note String
+
+  resolved Boolean @default(false)
+
+  createdAt  DateTime  @default(now())
+  resolvedAt DateTime?
+
+  @@index([boothId])
+  @@index([volunteerId])
+  @@index([resolved])
+  @@index([createdAt])
+}
+
+// ========================================
+// SYSTEM SETTINGS
+// ========================================
+
+model SystemSettings {
+  id String @id @default(uuid())
+
+  // Booth Strength
+  strongGreenPercent   Float @default(55)
+  moderateGreenPercent Float @default(40)
+
+  // Opportunity
+  highOpportunityYellow   Float @default(15)
+  mediumOpportunityYellow Float @default(8)
+
+  // Data Confidence
+  highVerification   Float @default(80)
+  mediumVerification Float @default(50)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
