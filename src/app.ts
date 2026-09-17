@@ -8,7 +8,10 @@ import authRoutes from "./modules/auth/auth.routes";
 import usersRoutes from "./modules/users/users.routes";
 import assemblyRoutes from "./modules/assembly/assembly.routes";
 import boothsRoutes from "./modules/booths/booths.routes";
-import volunteersRoutes from "./modules/volunteers/volunteers.routes";
+import volunteersRoutes from "./modules/volunteer/volunteer.routes";
+import volunteerAuthRoutes from "./modules/volunteer-auth/volunteer-auth.routes";
+import votersRoutes from "./modules/voters/voters.routes";
+import volunteerVoterRoutes from "./modules/volunteer-voters/volunteer-voters.routes";
 const app = express();
 
 app.use(helmet());
@@ -58,6 +61,9 @@ app.use("/api/users", usersRoutes);
 app.use("/api/assemblies", assemblyRoutes);
 app.use("/api/booths", boothsRoutes);
 app.use("/api/volunteers", volunteersRoutes);
+app.use("/api/volunteer-auth",volunteerAuthRoutes);
+app.use("/api/voters", votersRoutes);
+app.use("/api/volunteer-voters", volunteerVoterRoutes);
 
 
 export default app;
