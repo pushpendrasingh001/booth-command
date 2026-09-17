@@ -12,6 +12,8 @@ import volunteersRoutes from "./modules/volunteer/volunteer.routes";
 import volunteerAuthRoutes from "./modules/volunteer-auth/volunteer-auth.routes";
 import votersRoutes from "./modules/voters/voters.routes";
 import volunteerVoterRoutes from "./modules/volunteer-voters/volunteer-voters.routes";
+import swaggerUi from "swagger-ui-express";
+import { swaggerSpec } from "./config/swagger.js";
 const app = express();
 
 app.use(helmet());
@@ -64,6 +66,7 @@ app.use("/api/volunteers", volunteersRoutes);
 app.use("/api/volunteer-auth",volunteerAuthRoutes);
 app.use("/api/voters", votersRoutes);
 app.use("/api/volunteer-voters", volunteerVoterRoutes);
+app.use("/api-docs",swaggerUi.serve,swaggerUi.setup(swaggerSpec));
 
 
 export default app;
