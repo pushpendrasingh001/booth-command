@@ -170,17 +170,40 @@ model Volunteer {
 model Voter {
   id String @id @default(uuid())
 
-  // Official voter data
-  epic        String
-  name        String
-  fatherName  String?
+  // ========================================
+  // OFFICIAL / EXCEL VOTER DATA
+  // ========================================
+
+  epic String
+
+  name      String
+  nameHindi String?
+
+  fatherName      String?
+  fatherNameHindi String?
+
   motherName  String?
   husbandName String?
 
-  houseNumber String?
-  village     String?
   gender      String?
   age         Int?
+  dateOfBirth String?
+
+  houseNumber String?
+  village     String?
+
+  // ========================================
+  // ELECTORAL / BOOTH DETAILS
+  // ========================================
+
+  assemblyNumber     String?
+  partNumber         String?
+  partSerial         String?
+  pollingStationName String?
+
+  // ========================================
+  // ASSEMBLY / BOOTH RELATIONS
+  // ========================================
 
   assemblyId String
   assembly   Assembly @relation(fields: [assemblyId], references: [id])
@@ -188,21 +211,43 @@ model Voter {
   boothId String
   booth   Booth  @relation(fields: [boothId], references: [id])
 
-  // Field-team data
+  // ========================================
+  // FIELD-TEAM DATA
+  // ========================================
+
   mobile String?
 
   verification VerificationStatus @default(UNVERIFIED)
 
   classification Classification?
 
-  // Election Day
+  // ========================================
+  // ELECTION DAY
+  // ========================================
+
   voteStatus VoteStatus @default(PENDING)
+
+  // ========================================
+  // TIMESTAMPS
+  // ========================================
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // ========================================
+  // HISTORY / AUDIT
+  // ========================================
+
   classificationHistory ClassificationHistory[]
   auditLogs             AuditLog[]
+
+  // ========================================
+  // CONSTRAINT
+  // ========================================
+
+  // ========================================
+  // INDEXES
+  // ========================================
 
   @@unique([assemblyId, epic])
   @@index([epic])
@@ -215,6 +260,7 @@ model Voter {
   @@index([verification])
   @@index([gender])
   @@index([age])
+  @@index([partNumber])
 }
 
 // ========================================
