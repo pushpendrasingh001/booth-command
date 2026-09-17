@@ -34,6 +34,43 @@ app.use(morgan("dev"));
 // HEALTH
 // ========================================
 
+/**
+ * @swagger
+ * /api/health:
+ *   get:
+ *     summary: Check API health and database connectivity
+ *     tags: [Health]
+ *     responses:
+ *       200:
+ *         description: Backend is running and database is connected
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Booth Command Backend is running
+ *                 database:
+ *                   type: string
+ *                   example: connected
+ *       500:
+ *         description: Database connection failed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: Database connection failed
+ */
 app.get("/api/health", async (_req, res) => {
   try {
     await prisma.$queryRaw`SELECT 1`;

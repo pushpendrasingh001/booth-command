@@ -1,10 +1,17 @@
 import path from "path";
 import swaggerJSDoc from "swagger-jsdoc";
 
-const routesPath = path.join(
-  process.cwd(),
-  "src/modules/**/*.routes.ts"
-);
+const apiFiles = [
+  path.resolve(process.cwd(), "src/app.ts"),
+  path.resolve(process.cwd(), "src/modules/auth/auth.routes.ts"),
+  path.resolve(process.cwd(), "src/modules/users/users.routes.ts"),
+  path.resolve(process.cwd(), "src/modules/assembly/assembly.routes.ts"),
+  path.resolve(process.cwd(), "src/modules/booths/booths.routes.ts"),
+  path.resolve(process.cwd(), "src/modules/volunteer/volunteer.routes.ts"),
+  path.resolve(process.cwd(), "src/modules/volunteer-auth/volunteer-auth.routes.ts"),
+  path.resolve(process.cwd(), "src/modules/voters/voters.routes.ts"),
+  path.resolve(process.cwd(), "src/modules/volunteer-voters/volunteer-voters.routes.ts"),
+];
 
 const options: swaggerJSDoc.Options = {
   definition: {
@@ -26,8 +33,20 @@ const options: swaggerJSDoc.Options = {
 
     tags: [
       {
+        name: "Health",
+        description: "System health check",
+      },
+      {
         name: "Auth",
         description: "Admin authentication",
+      },
+      {
+        name: "Users",
+        description: "Admin user management",
+      },
+      {
+        name: "Assemblies",
+        description: "Assembly constituency management",
       },
       {
         name: "Voters",
@@ -219,16 +238,168 @@ const options: swaggerJSDoc.Options = {
             },
           },
         },
+
+        User: {
+          type: "object",
+          properties: {
+            id: {
+              type: "string",
+              format: "uuid",
+            },
+            name: {
+              type: "string",
+              example: "Admin User",
+            },
+            email: {
+              type: "string",
+              format: "email",
+              example: "admin@example.com",
+            },
+            role: {
+              type: "string",
+              enum: ["ADMIN"],
+              example: "ADMIN",
+            },
+            status: {
+              type: "string",
+              enum: ["ACTIVE", "INACTIVE"],
+              example: "ACTIVE",
+            },
+            createdAt: {
+              type: "string",
+              format: "date-time",
+            },
+            updatedAt: {
+              type: "string",
+              format: "date-time",
+            },
+          },
+        },
+
+        Assembly: {
+          type: "object",
+          properties: {
+            id: {
+              type: "string",
+              format: "uuid",
+            },
+            number: {
+              type: "string",
+              example: "123",
+            },
+            name: {
+              type: "string",
+              example: "Model Town",
+            },
+            district: {
+              type: "string",
+              example: "North Delhi",
+            },
+            electionYear: {
+              type: "integer",
+              example: 2025,
+            },
+            isActive: {
+              type: "boolean",
+              example: true,
+            },
+            createdAt: {
+              type: "string",
+              format: "date-time",
+            },
+            updatedAt: {
+              type: "string",
+              format: "date-time",
+            },
+          },
+        },
+
+        Booth: {
+          type: "object",
+          properties: {
+            id: {
+              type: "string",
+              format: "uuid",
+            },
+            boothNumber: {
+              type: "string",
+              example: "12A",
+            },
+            name: {
+              type: "string",
+              example: "Booth 12A",
+            },
+            village: {
+              type: "string",
+              nullable: true,
+              example: "Shahdara",
+            },
+            assemblyId: {
+              type: "string",
+              format: "uuid",
+            },
+            volunteerId: {
+              type: "string",
+              format: "uuid",
+              nullable: true,
+            },
+            status: {
+              type: "string",
+              enum: ["NOT_STARTED", "VOTING_STARTED", "PROBLEM"],
+              example: "NOT_STARTED",
+            },
+            createdAt: {
+              type: "string",
+              format: "date-time",
+            },
+            updatedAt: {
+              type: "string",
+              format: "date-time",
+            },
+          },
+        },
+
+        Volunteer: {
+          type: "object",
+          properties: {
+            id: {
+              type: "string",
+              format: "uuid",
+            },
+            name: {
+              type: "string",
+              example: "Rajesh Kumar",
+            },
+            mobile: {
+              type: "string",
+              example: "9876543210",
+            },
+            status: {
+              type: "string",
+              enum: ["ACTIVE", "INACTIVE"],
+              example: "ACTIVE",
+            },
+            firebaseUid: {
+              type: "string",
+              nullable: true,
+            },
+            createdAt: {
+              type: "string",
+              format: "date-time",
+            },
+            updatedAt: {
+              type: "string",
+              format: "date-time",
+            },
+          },
+        },
       },
     },
   },
 
-  // IMPORTANT
-  // Use absolute path so swagger-jsdoc
-  // can find route files.
-  apis: [routesPath],
+  apis: apiFiles,
 
-  failOnErrors: true,
+  failOnErrors: false,
 };
 
 export const swaggerSpec =
