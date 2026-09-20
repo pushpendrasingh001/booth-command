@@ -62,7 +62,7 @@ enum ImportStatus {
 }
 
 // ========================================
-// USER
+// USER / ADMIN
 // ========================================
 
 model User {
@@ -78,6 +78,8 @@ model User {
 
   importBatches ImportBatch[]
   auditLogs     AuditLog[]
+
+  classificationChanges ClassificationHistory[] @relation("ClassificationChangedByUser")
 
   @@index([role])
   @@index([status])
@@ -104,6 +106,7 @@ model Assembly {
 
   @@index([number])
   @@index([electionYear])
+  @@index([isActive])
 }
 
 // ========================================
@@ -117,10 +120,18 @@ model Booth {
   village     String?
 
   assemblyId String
-  assembly   Assembly @relation(fields: [assemblyId], references: [id])
 
-  volunteerId String?    @unique
-  volunteer   Volunteer? @relation(fields: [volunteerId], references: [id])
+  assembly Assembly @relation(
+    fields: [assemblyId],
+    references: [id]
+  )
+
+  volunteerId String? @unique
+
+  volunteer Volunteer? @relation(
+    fields: [volunteerId],
+    references: [id]
+  )
 
   status BoothStatus @default(NOT_STARTED)
 
@@ -135,6 +146,7 @@ model Booth {
   @@unique([assemblyId, boothNumber])
   @@index([assemblyId])
   @@index([village])
+  @@index([status])
 }
 
 // ========================================
@@ -154,8 +166,9 @@ model Volunteer {
   booth Booth?
 
   classificationHistory ClassificationHistory[]
-  electionDayUpdates    ElectionDayUpdate[]
-  electionDayAlerts     ElectionDayAlert[]
+
+  electionDayUpdates ElectionDayUpdate[]
+  electionDayAlerts  ElectionDayAlert[]
 
   auditLogs AuditLog[]
 
@@ -170,7 +183,7 @@ model Voter {
   id String @id @default(uuid())
 
   // ========================================
-  // OFFICIAL / EXCEL VOTER DATA
+  // OFFICIAL / EXCEL DATA
   // ========================================
 
   epic String
@@ -192,7 +205,7 @@ model Voter {
   village     String?
 
   // ========================================
-  // ELECTORAL / BOOTH DETAILS
+  // ELECTORAL DATA
   // ========================================
 
   assemblyNumber     String?
@@ -201,17 +214,29 @@ model Voter {
   pollingStationName String?
 
   // ========================================
-  // ASSEMBLY / BOOTH RELATIONS
+  // ASSEMBLY
   // ========================================
 
   assemblyId String
-  assembly   Assembly @relation(fields: [assemblyId], references: [id])
 
-  boothId String
-  booth   Booth  @relation(fields: [boothId], references: [id])
+  assembly Assembly @relation(
+    fields: [assemblyId],
+    references: [id]
+  )
 
   // ========================================
-  // FIELD-TEAM DATA
+  // BOOTH
+  // ========================================
+
+  boothId String
+
+  booth Booth @relation(
+    fields: [boothId],
+    references: [id]
+  )
+
+  // ========================================
+  // FIELD TEAM DATA
   // ========================================
 
   mobile String?
@@ -241,14 +266,15 @@ model Voter {
   auditLogs             AuditLog[]
 
   // ========================================
-  // CONSTRAINT
+  // CONSTRAINTS
   // ========================================
+
+  @@unique([assemblyId, epic])
 
   // ========================================
   // INDEXES
   // ========================================
 
-  @@unique([assemblyId, epic])
   @@index([epic])
   @@index([name])
   @@index([mobile])
@@ -270,18 +296,44 @@ model ClassificationHistory {
   id String @id @default(uuid())
 
   voterId String
-  voter   Voter  @relation(fields: [voterId], references: [id])
+
+  voter Voter @relation(
+    fields: [voterId],
+    references: [id]
+  )
 
   oldValue Classification?
   newValue Classification
 
+  // ========================================
+  // VOLUNTEER ACTOR
+  // ========================================
+
   changedById String?
-  changedBy   Volunteer? @relation(fields: [changedById], references: [id])
+
+  changedBy Volunteer? @relation(
+    fields: [changedById],
+    references: [id]
+  )
+
+  // ========================================
+  // ADMIN ACTOR
+  // ========================================
+
+  changedByUserId String?
+
+  changedByUser User? @relation(
+    "ClassificationChangedByUser",
+    fields: [changedByUserId],
+    references: [id]
+  )
 
   changedAt DateTime @default(now())
 
   @@index([voterId])
   @@index([changedById])
+  @@index([changedByUserId])
+  @@index([changedAt])
 }
 
 // ========================================
@@ -295,7 +347,11 @@ model ImportBatch {
   fileType String
 
   uploadedById String
-  uploadedBy   User   @relation(fields: [uploadedById], references: [id])
+
+  uploadedBy User @relation(
+    fields: [uploadedById],
+    references: [id]
+  )
 
   status ImportStatus @default(UPLOADED)
 
@@ -323,7 +379,11 @@ model ImportError {
   id String @id @default(uuid())
 
   batchId String
-  batch   ImportBatch @relation(fields: [batchId], references: [id])
+
+  batch ImportBatch @relation(
+    fields: [batchId],
+    references: [id]
+  )
 
   rowNumber    Int
   rawData      Json
@@ -347,14 +407,38 @@ model AuditLog {
 
   details Json?
 
+  // ========================================
+  // ADMIN / USER
+  // ========================================
+
   userId String?
-  user   User?   @relation(fields: [userId], references: [id])
+
+  user User? @relation(
+    fields: [userId],
+    references: [id]
+  )
+
+  // ========================================
+  // VOLUNTEER
+  // ========================================
 
   volunteerId String?
-  volunteer   Volunteer? @relation(fields: [volunteerId], references: [id])
+
+  volunteer Volunteer? @relation(
+    fields: [volunteerId],
+    references: [id]
+  )
+
+  // ========================================
+  // VOTER
+  // ========================================
 
   voterId String?
-  voter   Voter?  @relation(fields: [voterId], references: [id])
+
+  voter Voter? @relation(
+    fields: [voterId],
+    references: [id]
+  )
 
   createdAt DateTime @default(now())
 
@@ -370,15 +454,25 @@ model AuditLog {
 // ========================================
 // ELECTION DAY UPDATE
 // ========================================
+// Currently skipped.
+// Model retained for future use.
 
 model ElectionDayUpdate {
   id String @id @default(uuid())
 
   boothId String
-  booth   Booth  @relation(fields: [boothId], references: [id])
+
+  booth Booth @relation(
+    fields: [boothId],
+    references: [id]
+  )
 
   volunteerId String
-  volunteer   Volunteer @relation(fields: [volunteerId], references: [id])
+
+  volunteer Volunteer @relation(
+    fields: [volunteerId],
+    references: [id]
+  )
 
   turnout Int?
   note    String?
@@ -393,15 +487,25 @@ model ElectionDayUpdate {
 // ========================================
 // ELECTION DAY ALERT
 // ========================================
+// Currently skipped.
+// Model retained for future use.
 
 model ElectionDayAlert {
   id String @id @default(uuid())
 
   boothId String
-  booth   Booth  @relation(fields: [boothId], references: [id])
+
+  booth Booth @relation(
+    fields: [boothId],
+    references: [id]
+  )
 
   volunteerId String
-  volunteer   Volunteer @relation(fields: [volunteerId], references: [id])
+
+  volunteer Volunteer @relation(
+    fields: [volunteerId],
+    references: [id]
+  )
 
   type AlertType
   note String
@@ -424,15 +528,24 @@ model ElectionDayAlert {
 model SystemSettings {
   id String @id @default(uuid())
 
-  // Booth Strength
+  // ========================================
+  // BOOTH STRENGTH
+  // ========================================
+
   strongGreenPercent   Float @default(55)
   moderateGreenPercent Float @default(40)
 
-  // Opportunity
+  // ========================================
+  // YELLOW OPPORTUNITY
+  // ========================================
+
   highOpportunityYellow   Float @default(15)
   mediumOpportunityYellow Float @default(8)
 
-  // Data Confidence
+  // ========================================
+  // DATA CONFIDENCE
+  // ========================================
+
   highVerification   Float @default(80)
   mediumVerification Float @default(50)
 

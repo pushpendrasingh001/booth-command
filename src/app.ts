@@ -3,37 +3,58 @@ import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 
-import { prisma } from "./config/prisma";
-import authRoutes from "./modules/auth/auth.routes";
-import usersRoutes from "./modules/users/users.routes";
-import assemblyRoutes from "./modules/assembly/assembly.routes";
-import boothsRoutes from "./modules/booths/booths.routes";
-import volunteersRoutes from "./modules/volunteer/volunteer.routes";
-import volunteerAuthRoutes from "./modules/volunteer-auth/volunteer-auth.routes";
-import votersRoutes from "./modules/voters/voters.routes";
-import volunteerVoterRoutes from "./modules/volunteer-voters/volunteer-voters.routes";
+import { prisma } from "./config/prisma.js";
+
+import authRoutes from "./modules/auth/auth.routes.js";
+import usersRoutes from "./modules/users/users.routes.js";
+import assemblyRoutes from "./modules/assembly/assembly.routes.js";
+import boothsRoutes from "./modules/booths/booths.routes.js";
+import volunteersRoutes from "./modules/volunteer/volunteer.routes.js";
+import volunteerAuthRoutes from "./modules/volunteer-auth/volunteer-auth.routes.js";
+import votersRoutes from "./modules/voters/voters.routes.js";
+import volunteerVoterRoutes from "./modules/volunteer-voters/volunteer-voters.routes.js";
 import classificationRoutes from "./modules/classification/classification.routes.js";
 import analyticsRoutes from "./modules/analytics/analytics.routes.js";
 import boothAnalysisRoutes from "./modules/booth-analysis/booth-analysis.routes.js";
 import reportsRoutes from "./modules/reports/reports.routes.js";
+import settingsRoutes from "./modules/settings/settings.routes.js";
 
 import swaggerUi from "swagger-ui-express";
 import { swaggerSpec } from "./config/swagger.js";
+
 const app = express();
+
+// ========================================
+// SECURITY
+// ========================================
 
 app.use(helmet());
 
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN || "http://localhost:3000",
-  })
+    origin:
+      process.env.CORS_ORIGIN ||
+      "http://localhost:3000",
+  }),
 );
 
+// ========================================
+// BODY PARSING
+// ========================================
+
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+
+app.use(
+  express.urlencoded({
+    extended: true,
+  }),
+);
+
+// ========================================
+// LOGGING
+// ========================================
 
 app.use(morgan("dev"));
-
 
 // ========================================
 // HEALTH
@@ -44,74 +65,179 @@ app.use(morgan("dev"));
  * /api/health:
  *   get:
  *     summary: Check API health and database connectivity
- *     tags: [Health]
+ *     tags:
+ *       - Health
  *     responses:
  *       200:
  *         description: Backend is running and database is connected
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 message:
- *                   type: string
- *                   example: Booth Command Backend is running
- *                 database:
- *                   type: string
- *                   example: connected
  *       500:
  *         description: Database connection failed
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: false
- *                 message:
- *                   type: string
- *                   example: Database connection failed
  */
-app.get("/api/health", async (_req, res) => {
-  try {
-    await prisma.$queryRaw`SELECT 1`;
+app.get(
+  "/api/health",
+  async (_req, res) => {
+    try {
+      await prisma.$queryRaw`SELECT 1`;
 
-    res.status(200).json({
-      success: true,
-      message: "Booth Command Backend is running",
-      database: "connected",
-    });
-  } catch (error) {
-    console.error(error);
+      return res.status(200).json({
+        success: true,
+        message:
+          "Booth Command Backend is running",
+        database: "connected",
+      });
+    } catch (error) {
+      console.error(
+        "Health check error:",
+        error,
+      );
 
-    res.status(500).json({
-      success: false,
-      message: "Database connection failed",
-    });
-  }
-});
-
+      return res.status(500).json({
+        success: false,
+        message:
+          "Database connection failed",
+      });
+    }
+  },
+);
 
 // ========================================
 // AUTH
 // ========================================
 
-app.use("/api/auth", authRoutes);
-app.use("/api/users", usersRoutes);
-app.use("/api/assemblies", assemblyRoutes);
-app.use("/api/booths", boothsRoutes);
-app.use("/api/volunteers", volunteersRoutes);
-app.use("/api/volunteer-auth",volunteerAuthRoutes);
-app.use("/api/voters", votersRoutes);
-app.use("/api/volunteer-voters", volunteerVoterRoutes);
-app.use("/api-docs",swaggerUi.serve,swaggerUi.setup(swaggerSpec));
-app.use("/api/classification",classificationRoutes);
-app.use("/api/analytics/booths",boothAnalysisRoutes);
-app.use("/api/analytics",analyticsRoutes);
-app.use("/api/reports",reportsRoutes);
+app.use(
+  "/api/auth",
+  authRoutes,
+);
+
+// ========================================
+// USERS
+// ========================================
+
+app.use(
+  "/api/users",
+  usersRoutes,
+);
+
+// ========================================
+// ASSEMBLY
+// ========================================
+
+app.use(
+  "/api/assemblies",
+  assemblyRoutes,
+);
+
+// ========================================
+// BOOTHS
+// ========================================
+
+app.use(
+  "/api/booths",
+  boothsRoutes,
+);
+
+// ========================================
+// VOLUNTEERS
+// ========================================
+
+app.use(
+  "/api/volunteers",
+  volunteersRoutes,
+);
+
+// ========================================
+// VOLUNTEER AUTH
+// ========================================
+
+app.use(
+  "/api/volunteer-auth",
+  volunteerAuthRoutes,
+);
+
+// ========================================
+// VOTERS
+// ========================================
+
+app.use(
+  "/api/voters",
+  votersRoutes,
+);
+
+// ========================================
+// VOLUNTEER VOTERS
+// ========================================
+
+app.use(
+  "/api/volunteer-voters",
+  volunteerVoterRoutes,
+);
+
+// ========================================
+// CLASSIFICATION
+// ========================================
+
+app.use(
+  "/api/classification",
+  classificationRoutes,
+);
+
+// ========================================
+// ANALYTICS
+// ========================================
+
+// IMPORTANT:
+// Booth-specific routes must come before
+// the generic analytics routes.
+
+app.use(
+  "/api/analytics/booths",
+  boothAnalysisRoutes,
+);
+
+app.use(
+  "/api/analytics",
+  analyticsRoutes,
+);
+
+// ========================================
+// REPORTS
+// ========================================
+
+app.use(
+  "/api/reports",
+  reportsRoutes,
+);
+
+// ========================================
+// SYSTEM SETTINGS
+// ========================================
+
+app.use(
+  "/api/settings",
+  settingsRoutes,
+);
+
+// ========================================
+// SWAGGER
+// ========================================
+
+app.use(
+  "/api-docs",
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerSpec),
+);
+
+// ========================================
+// 404 HANDLER
+// ========================================
+
+app.use(
+  (_req, res) => {
+    return res.status(404).json({
+      success: false,
+      message: "Route not found",
+    });
+  },
+);
 
 export default app;
