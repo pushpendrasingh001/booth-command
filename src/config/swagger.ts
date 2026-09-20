@@ -1,16 +1,27 @@
 import path from "path";
 import swaggerJSDoc from "swagger-jsdoc";
 
+import fs from "fs";
+
+const isDist = !fs.existsSync(path.resolve(process.cwd(), "src/app.ts"));
+const baseDir = isDist ? "dist" : "src";
+const ext = isDist ? "js" : "ts";
+
 const apiFiles = [
-  path.resolve(process.cwd(), "src/app.ts"),
-  path.resolve(process.cwd(), "src/modules/auth/auth.routes.ts"),
-  path.resolve(process.cwd(), "src/modules/users/users.routes.ts"),
-  path.resolve(process.cwd(), "src/modules/assembly/assembly.routes.ts"),
-  path.resolve(process.cwd(), "src/modules/booths/booths.routes.ts"),
-  path.resolve(process.cwd(), "src/modules/volunteer/volunteer.routes.ts"),
-  path.resolve(process.cwd(), "src/modules/volunteer-auth/volunteer-auth.routes.ts"),
-  path.resolve(process.cwd(), "src/modules/voters/voters.routes.ts"),
-  path.resolve(process.cwd(), "src/modules/volunteer-voters/volunteer-voters.routes.ts"),
+  path.resolve(process.cwd(), `${baseDir}/app.${ext}`),
+  path.resolve(process.cwd(), `${baseDir}/modules/auth/auth.routes.${ext}`),
+  path.resolve(process.cwd(), `${baseDir}/modules/users/users.routes.${ext}`),
+  path.resolve(process.cwd(), `${baseDir}/modules/assembly/assembly.routes.${ext}`),
+  path.resolve(process.cwd(), `${baseDir}/modules/booths/booths.routes.${ext}`),
+  path.resolve(process.cwd(), `${baseDir}/modules/volunteer/volunteer.routes.${ext}`),
+  path.resolve(process.cwd(), `${baseDir}/modules/volunteer-auth/volunteer-auth.routes.${ext}`),
+  path.resolve(process.cwd(), `${baseDir}/modules/voters/voters.routes.${ext}`),
+  path.resolve(process.cwd(), `${baseDir}/modules/volunteer-voters/volunteer-voters.routes.${ext}`),
+  path.resolve(process.cwd(), `${baseDir}/modules/classification/classification.routes.${ext}`),
+  path.resolve(process.cwd(), `${baseDir}/modules/analytics/analytics.routes.${ext}`),
+  path.resolve(process.cwd(), `${baseDir}/modules/booth-analysis/booth-analysis.routes.${ext}`),
+  path.resolve(process.cwd(), `${baseDir}/modules/reports/reports.routes.${ext}`),
+  path.resolve(process.cwd(), `${baseDir}/modules/settings/settings.routes.${ext}`),
 ];
 
 const options: swaggerJSDoc.Options = {
@@ -68,6 +79,26 @@ const options: swaggerJSDoc.Options = {
       {
         name: "Booths",
         description: "Booth management",
+      },
+      {
+        name: "Classification",
+        description: "Voter political classification (Green, Yellow, Red, Black)",
+      },
+      {
+        name: "Analytics",
+        description: "Electoral and operational analytics",
+      },
+      {
+        name: "Booth Analysis",
+        description: "Detailed booth strength, weakness, opportunity, and confidence analysis",
+      },
+      {
+        name: "Reports",
+        description: "System reports and Excel/CSV exports",
+      },
+      {
+        name: "Settings",
+        description: "Configurable system analysis thresholds",
       },
     ],
 
@@ -380,6 +411,48 @@ const options: swaggerJSDoc.Options = {
               type: "string",
               enum: ["ACTIVE", "INACTIVE"],
               example: "ACTIVE",
+            },
+            createdAt: {
+              type: "string",
+              format: "date-time",
+            },
+            updatedAt: {
+              type: "string",
+              format: "date-time",
+            },
+          },
+        },
+
+        SystemSettings: {
+          type: "object",
+          properties: {
+            id: {
+              type: "string",
+              format: "uuid",
+            },
+            strongGreenPercent: {
+              type: "number",
+              example: 55,
+            },
+            moderateGreenPercent: {
+              type: "number",
+              example: 40,
+            },
+            highOpportunityYellow: {
+              type: "number",
+              example: 15,
+            },
+            mediumOpportunityYellow: {
+              type: "number",
+              example: 8,
+            },
+            highVerification: {
+              type: "number",
+              example: 80,
+            },
+            mediumVerification: {
+              type: "number",
+              example: 50,
             },
             createdAt: {
               type: "string",
