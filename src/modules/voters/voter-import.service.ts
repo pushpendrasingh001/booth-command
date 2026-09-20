@@ -1,49 +1,42 @@
 import * as XLSX from "xlsx";
+import { Prisma } from "@prisma/client";
 
 import { prisma } from "../../config/prisma";
 
-/**
- * Excel row structure
- *
- * Based on your voter Excel file.
- */
+// ========================================
+// EXCEL ROW STRUCTURE
+// ========================================
+
 export interface RawExcelVoter {
   epicNo?: unknown;
-
   epicName?: unknown;
-
   epicName1?: unknown;
 
   Gender?: unknown;
 
   mobileNo?: unknown;
-
   enrollDob?: unknown;
-
   Age?: unknown;
 
   fathersOrGuardian?: unknown;
-
   fathersOrGuardianHindi?: unknown;
 
   mothersName?: unknown;
-
   spouseName?: unknown;
 
   houseNo?: unknown;
 
   acNo?: unknown;
-
   partNo?: unknown;
-
   partSerial?: unknown;
 
   pollingStation?: unknown;
 }
 
-/**
- * Clean string value
- */
+// ========================================
+// CLEAN STRING
+// ========================================
+
 function cleanString(
   value: unknown
 ): string | null {
@@ -54,25 +47,22 @@ function cleanString(
     return null;
   }
 
-  const result =
-    String(value).trim();
+  const result = String(value)
+    .replace(
+      /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g,
+      ""
+    )
+    .trim();
 
   return result.length > 0
     ? result
     : null;
 }
 
-/**
- * Clean mobile
- *
- * Handles Excel:
- *
- * 9876543210
- *
- * and:
- *
- * 9876543210.0
- */
+// ========================================
+// CLEAN MOBILE
+// ========================================
+
 function cleanMobile(
   value: unknown
 ): string | null {
@@ -84,22 +74,24 @@ function cleanMobile(
     return null;
   }
 
-  let mobile =
-    String(value).trim();
+  let mobile = String(value)
+    .replace(
+      /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g,
+      ""
+    )
+    .trim();
 
-  if (
-    mobile.endsWith(".0")
-  ) {
-    mobile =
-      mobile.slice(0, -2);
+  if (mobile.endsWith(".0")) {
+    mobile = mobile.slice(0, -2);
   }
 
   return mobile || null;
 }
 
-/**
- * Clean number
- */
+// ========================================
+// CLEAN NUMBER
+// ========================================
+
 function cleanNumber(
   value: unknown
 ): number | null {
@@ -111,21 +103,109 @@ function cleanNumber(
     return null;
   }
 
-  const number =
-    Number(value);
+  const number = Number(value);
 
-  if (
-    Number.isNaN(number)
-  ) {
+  if (Number.isNaN(number)) {
     return null;
   }
 
   return number;
 }
 
-/**
- * Read Excel / XLS / CSV
- */
+// ========================================
+// SANITIZE JSON VALUE
+// ========================================
+//
+// PostgreSQL JSON/JSONB does not accept
+// certain control characters such as \u0000.
+//
+// This function recursively sanitizes:
+// - strings
+// - arrays
+// - objects
+// - numbers
+// - booleans
+// - null
+//
+// Hindi and other normal Unicode characters
+// are preserved.
+//
+
+function sanitizeJsonValue(
+  value: unknown
+): unknown {
+  if (value === null) {
+    return null;
+  }
+
+  if (typeof value === "string") {
+    return value.replace(
+      /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g,
+      ""
+    );
+  }
+
+  if (
+    typeof value === "number" ||
+    typeof value === "boolean"
+  ) {
+    return value;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) =>
+      sanitizeJsonValue(item)
+    );
+  }
+
+  if (
+    typeof value === "object" &&
+    value !== null
+  ) {
+    const result: Record<string, unknown> = {};
+
+    for (const [key, item] of Object.entries(
+      value
+    )) {
+      const cleanKey = key.replace(
+        /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g,
+        ""
+      );
+
+      result[cleanKey] =
+        sanitizeJsonValue(item);
+    }
+
+    return result;
+  }
+
+  return String(value);
+}
+
+// ========================================
+// CONVERT ROW TO PRISMA JSON
+// ========================================
+//
+// JSON.stringify + JSON.parse ensures that
+// the final value is valid JSON before Prisma
+// sends it to PostgreSQL.
+//
+
+function toPrismaJson(
+  value: unknown
+): Prisma.InputJsonValue {
+  const sanitized =
+    sanitizeJsonValue(value);
+
+  return JSON.parse(
+    JSON.stringify(sanitized)
+  ) as Prisma.InputJsonValue;
+}
+
+// ========================================
+// READ EXCEL / XLS / CSV
+// ========================================
+
 export function parseVoterExcel(
   filePath: string
 ): RawExcelVoter[] {
@@ -147,9 +227,13 @@ export function parseVoterExcel(
   }
 
   const worksheet =
-    workbook.Sheets[
-      sheetName
-    ];
+    workbook.Sheets[sheetName];
+
+  if (!worksheet) {
+    throw new Error(
+      "Unable to read Excel worksheet"
+    );
+  }
 
   const rows =
     XLSX.utils.sheet_to_json<RawExcelVoter>(
@@ -245,9 +329,10 @@ export function parseVoterExcel(
   );
 }
 
-/**
- * Import voter file
- */
+// ========================================
+// IMPORT VOTER FILE
+// ========================================
+
 export async function importVoterFile(
   filePath: string,
   fileName: string,
@@ -255,17 +340,16 @@ export async function importVoterFile(
   uploadedById: string,
   assemblyId: string
 ) {
-  /**
-   * Check Assembly
-   */
+  // ======================================
+  // CHECK ASSEMBLY
+  // ======================================
+
   const assembly =
-    await prisma.assembly.findUnique(
-      {
-        where: {
-          id: assemblyId,
-        },
-      }
-    );
+    await prisma.assembly.findUnique({
+      where: {
+        id: assemblyId,
+      },
+    });
 
   if (!assembly) {
     throw new Error(
@@ -273,46 +357,41 @@ export async function importVoterFile(
     );
   }
 
-  /**
-   * Create ImportBatch
-   */
+  // ======================================
+  // CREATE IMPORT BATCH
+  // ======================================
+
   const batch =
-    await prisma.importBatch.create(
-      {
-        data: {
-          fileName,
-
-          fileType,
-
-          uploadedById,
-
-          status: "REVIEWING",
-        },
-      }
-    );
+    await prisma.importBatch.create({
+      data: {
+        fileName,
+        fileType,
+        uploadedById,
+        status: "REVIEWING",
+      },
+    });
 
   let rows: RawExcelVoter[];
 
-  /**
-   * Parse file
-   */
+  // ======================================
+  // PARSE FILE
+  // ======================================
+
   try {
     rows =
       parseVoterExcel(
         filePath
       );
   } catch (error) {
-    await prisma.importBatch.update(
-      {
-        where: {
-          id: batch.id,
-        },
+    await prisma.importBatch.update({
+      where: {
+        id: batch.id,
+      },
 
-        data: {
-          status: "FAILED",
-        },
-      }
-    );
+      data: {
+        status: "FAILED",
+      },
+    });
 
     throw new Error(
       error instanceof Error
@@ -320,6 +399,10 @@ export async function importVoterFile(
         : "Unable to read voter file"
     );
   }
+
+  // ======================================
+  // COUNTERS
+  // ======================================
 
   const totalRows =
     rows.length;
@@ -329,16 +412,17 @@ export async function importVoterFile(
   let errorRows = 0;
   let importedRows = 0;
 
-  /**
-   * Track EPIC numbers in
-   * current file.
-   */
+  // ======================================
+  // TRACK EPICS
+  // ======================================
+
   const seenEpics =
     new Set<string>();
 
-  /**
-   * Process rows
-   */
+  // ======================================
+  // PROCESS ROWS
+  // ======================================
+
   for (
     let index = 0;
     index < rows.length;
@@ -347,46 +431,44 @@ export async function importVoterFile(
     const row =
       rows[index];
 
-    /**
-     * Excel data starts
-     * from row 2.
-     */
     const rowNumber =
       index + 2;
 
     try {
-      /**
-       * EPIC
-       */
+      // ==================================
+      // EPIC
+      // ==================================
+
       const epicValue =
         cleanString(
           row.epicNo
         );
 
       const epic =
-        epicValue
-          ?.toUpperCase();
+        epicValue?.toUpperCase();
 
-      /**
-       * Name
-       */
+      // ==================================
+      // NAME
+      // ==================================
+
       const name =
         cleanString(
           row.epicName
         );
 
-      /**
-       * Part number =
-       * Booth number
-       */
+      // ==================================
+      // BOOTH / PART NUMBER
+      // ==================================
+
       const boothNumber =
         cleanString(
           row.partNo
         );
 
-      /**
-       * Required validations
-       */
+      // ==================================
+      // REQUIRED VALIDATION
+      // ==================================
+
       if (!epic) {
         throw new Error(
           "EPIC number is missing"
@@ -405,10 +487,10 @@ export async function importVoterFile(
         );
       }
 
-      /**
-       * Duplicate EPIC
-       * inside uploaded file
-       */
+      // ==================================
+      // DUPLICATE EPIC IN CURRENT FILE
+      // ==================================
+
       if (
         seenEpics.has(epic)
       ) {
@@ -421,28 +503,19 @@ export async function importVoterFile(
 
       seenEpics.add(epic);
 
-      /**
-       * Find booth
-       *
-       * Example:
-       *
-       * Excel partNo = 1
-       *
-       * DB boothNumber = "1"
-       */
-      const booth =
-        await prisma.booth.findUnique(
-          {
-            where: {
-              assemblyId_boothNumber:
-                {
-                  assemblyId,
+      // ==================================
+      // FIND BOOTH
+      // ==================================
 
-                  boothNumber,
-                },
+      const booth =
+        await prisma.booth.findUnique({
+          where: {
+            assemblyId_boothNumber: {
+              assemblyId,
+              boothNumber,
             },
-          }
-        );
+          },
+        });
 
       if (!booth) {
         throw new Error(
@@ -452,36 +525,52 @@ export async function importVoterFile(
 
       validRows++;
 
-      /**
-       * Find existing voter
-       *
-       * EPIC is unique per assembly.
-       */
+      // ==================================
+      // FIND EXISTING VOTER
+      // ==================================
+
       const existing =
-        await prisma.voter.findUnique(
-          {
-            where: {
-              assemblyId_epic: {
-                assemblyId,
-
-                epic,
-              },
+        await prisma.voter.findUnique({
+          where: {
+            assemblyId_epic: {
+              assemblyId,
+              epic,
             },
-          }
-        );
+          },
+        });
 
-      /**
-       * Official voter data
-       *
-       * These fields are safe
-       * to update during import.
-       */
+      // ==================================
+      // OFFICIAL VOTER DATA
+      // ==================================
+      //
+      // These fields CAN be updated from
+      // Excel during re-import.
+      //
+      // Field-team data is intentionally
+      // excluded:
+      //
+      // mobile
+      // classification
+      // verification
+      // voteStatus
+      // ==================================
+
       const officialData = {
         name,
+
+        nameHindi:
+          cleanString(
+            row.epicName1
+          ),
 
         fatherName:
           cleanString(
             row.fathersOrGuardian
+          ),
+
+        fatherNameHindi:
+          cleanString(
+            row.fathersOrGuardianHindi
           ),
 
         motherName:
@@ -509,124 +598,142 @@ export async function importVoterFile(
             row.Age
           ),
 
+        dateOfBirth:
+          cleanString(
+            row.enrollDob
+          ),
+
+        assemblyNumber:
+          cleanString(
+            row.acNo
+          ),
+
+        partNumber:
+          cleanString(
+            row.partNo
+          ),
+
+        partSerial:
+          cleanString(
+            row.partSerial
+          ),
+
+        pollingStationName:
+          cleanString(
+            row.pollingStation
+          ),
+
         assemblyId,
 
         boothId:
           booth.id,
       };
 
-      /**
-       * Existing voter
-       *
-       * IMPORTANT:
-       *
-       * We do NOT update:
-       *
-       * mobile
-       * classification
-       * verification
-       * voteStatus
-       */
-      if (existing) {
-        await prisma.voter.update(
-          {
-            where: {
-              id: existing.id,
-            },
+      // ==================================
+      // EXISTING VOTER
+      // ==================================
 
-            data: officialData,
-          }
-        );
+      if (existing) {
+        await prisma.voter.update({
+          where: {
+            id: existing.id,
+          },
+
+          data: officialData,
+        });
       }
 
-      /**
-       * New voter
-       */
+      // ==================================
+      // NEW VOTER
+      // ==================================
+
       else {
-        await prisma.voter.create(
-          {
-            data: {
-              epic,
+        await prisma.voter.create({
+          data: {
+            epic,
 
-              ...officialData,
+            ...officialData,
 
-              /**
-               * New voter gets
-               * Excel mobile.
-               */
-              mobile:
-                cleanMobile(
-                  row.mobileNo
-                ),
+            // Excel mobile is used ONLY
+            // when creating a new voter.
+            mobile:
+              cleanMobile(
+                row.mobileNo
+              ),
 
-              verification:
-                "UNVERIFIED",
+            verification:
+              "UNVERIFIED",
 
-              voteStatus:
-                "PENDING",
-            },
-          }
-        );
+            voteStatus:
+              "PENDING",
+          },
+        });
       }
 
       importedRows++;
     } catch (error) {
       errorRows++;
 
-      await prisma.importError.create(
-        {
-          data: {
-            batchId: batch.id,
+      // ==================================
+      // SAVE IMPORT ERROR
+      // ==================================
+      //
+      // IMPORTANT:
+      // Sanitize raw Excel data before
+      // inserting into PostgreSQL JSONB.
+      // ==================================
 
-            rowNumber,
+      await prisma.importError.create({
+        data: {
+          batchId:
+            batch.id,
 
-            rawData:
-              JSON.parse(
-                JSON.stringify(row)
-              ),
+          rowNumber,
 
-            errorMessage:
-              error instanceof Error
-                ? error.message
-                : "Unknown import error",
-          },
-        }
-      );
+          rawData:
+            toPrismaJson(row),
+
+          errorMessage:
+            error instanceof Error
+              ? error.message
+              : "Unknown import error",
+        },
+      });
     }
   }
 
-  /**
-   * Mark import completed
-   */
+  // ======================================
+  // MARK IMPORT COMPLETED
+  // ======================================
+
   const completedBatch =
-    await prisma.importBatch.update(
-      {
-        where: {
-          id: batch.id,
-        },
+    await prisma.importBatch.update({
+      where: {
+        id: batch.id,
+      },
 
-        data: {
-          status: "COMMITTED",
+      data: {
+        status: "COMMITTED",
 
-          totalRows,
+        totalRows,
 
-          validRows,
+        validRows,
 
-          duplicateRows,
+        duplicateRows,
 
-          errorRows,
+        errorRows,
 
-          importedRows,
+        importedRows,
 
-          completedAt:
-            new Date(),
-        },
-      }
-    );
+        completedAt:
+          new Date(),
+      },
+    });
 
-  /**
-   * Audit log
-   */
+  // ======================================
+  // AUDIT LOG
+  // ======================================
+
   await prisma.auditLog.create({
     data: {
       action:
@@ -635,9 +742,11 @@ export async function importVoterFile(
       entity:
         "IMPORT_BATCH",
 
-      entityId: batch.id,
+      entityId:
+        batch.id,
 
-      userId: uploadedById,
+      userId:
+        uploadedById,
 
       details: {
         fileName,
@@ -656,6 +765,10 @@ export async function importVoterFile(
       },
     },
   });
+
+  // ======================================
+  // RETURN RESULT
+  // ======================================
 
   return completedBatch;
 }
