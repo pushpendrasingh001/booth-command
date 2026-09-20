@@ -12,6 +12,11 @@ import volunteersRoutes from "./modules/volunteer/volunteer.routes";
 import volunteerAuthRoutes from "./modules/volunteer-auth/volunteer-auth.routes";
 import votersRoutes from "./modules/voters/voters.routes";
 import volunteerVoterRoutes from "./modules/volunteer-voters/volunteer-voters.routes";
+import classificationRoutes from "./modules/classification/classification.routes.js";
+import analyticsRoutes from "./modules/analytics/analytics.routes.js";
+import boothAnalysisRoutes from "./modules/booth-analysis/booth-analysis.routes.js";
+import reportsRoutes from "./modules/reports/reports.routes.js";
+
 import swaggerUi from "swagger-ui-express";
 import { swaggerSpec } from "./config/swagger.js";
 const app = express();
@@ -104,6 +109,9 @@ app.use("/api/volunteer-auth",volunteerAuthRoutes);
 app.use("/api/voters", votersRoutes);
 app.use("/api/volunteer-voters", volunteerVoterRoutes);
 app.use("/api-docs",swaggerUi.serve,swaggerUi.setup(swaggerSpec));
-
+app.use("/api/classification",classificationRoutes);
+app.use("/api/analytics/booths",boothAnalysisRoutes);
+app.use("/api/analytics",analyticsRoutes);
+app.use("/api/reports",reportsRoutes);
 
 export default app;
