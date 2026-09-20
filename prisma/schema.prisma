@@ -120,18 +120,10 @@ model Booth {
   village     String?
 
   assemblyId String
+  assembly   Assembly @relation(fields: [assemblyId], references: [id])
 
-  assembly Assembly @relation(
-    fields: [assemblyId],
-    references: [id]
-  )
-
-  volunteerId String? @unique
-
-  volunteer Volunteer? @relation(
-    fields: [volunteerId],
-    references: [id]
-  )
+  volunteerId String?    @unique
+  volunteer   Volunteer? @relation(fields: [volunteerId], references: [id])
 
   status BoothStatus @default(NOT_STARTED)
 
@@ -218,22 +210,14 @@ model Voter {
   // ========================================
 
   assemblyId String
-
-  assembly Assembly @relation(
-    fields: [assemblyId],
-    references: [id]
-  )
+  assembly   Assembly @relation(fields: [assemblyId], references: [id])
 
   // ========================================
   // BOOTH
   // ========================================
 
   boothId String
-
-  booth Booth @relation(
-    fields: [boothId],
-    references: [id]
-  )
+  booth   Booth  @relation(fields: [boothId], references: [id])
 
   // ========================================
   // FIELD TEAM DATA
@@ -241,8 +225,7 @@ model Voter {
 
   mobile String?
 
-  verification VerificationStatus @default(UNVERIFIED)
-
+  verification   VerificationStatus @default(UNVERIFIED)
   classification Classification?
 
   // ========================================
@@ -269,12 +252,11 @@ model Voter {
   // CONSTRAINTS
   // ========================================
 
-  @@unique([assemblyId, epic])
-
   // ========================================
   // INDEXES
   // ========================================
 
+  @@unique([assemblyId, epic])
   @@index([epic])
   @@index([name])
   @@index([mobile])
@@ -296,11 +278,7 @@ model ClassificationHistory {
   id String @id @default(uuid())
 
   voterId String
-
-  voter Voter @relation(
-    fields: [voterId],
-    references: [id]
-  )
+  voter   Voter  @relation(fields: [voterId], references: [id])
 
   oldValue Classification?
   newValue Classification
@@ -310,23 +288,14 @@ model ClassificationHistory {
   // ========================================
 
   changedById String?
-
-  changedBy Volunteer? @relation(
-    fields: [changedById],
-    references: [id]
-  )
+  changedBy   Volunteer? @relation(fields: [changedById], references: [id])
 
   // ========================================
   // ADMIN ACTOR
   // ========================================
 
   changedByUserId String?
-
-  changedByUser User? @relation(
-    "ClassificationChangedByUser",
-    fields: [changedByUserId],
-    references: [id]
-  )
+  changedByUser   User?   @relation("ClassificationChangedByUser", fields: [changedByUserId], references: [id])
 
   changedAt DateTime @default(now())
 
@@ -347,11 +316,7 @@ model ImportBatch {
   fileType String
 
   uploadedById String
-
-  uploadedBy User @relation(
-    fields: [uploadedById],
-    references: [id]
-  )
+  uploadedBy   User   @relation(fields: [uploadedById], references: [id])
 
   status ImportStatus @default(UPLOADED)
 
@@ -379,11 +344,7 @@ model ImportError {
   id String @id @default(uuid())
 
   batchId String
-
-  batch ImportBatch @relation(
-    fields: [batchId],
-    references: [id]
-  )
+  batch   ImportBatch @relation(fields: [batchId], references: [id])
 
   rowNumber    Int
   rawData      Json
@@ -412,33 +373,21 @@ model AuditLog {
   // ========================================
 
   userId String?
-
-  user User? @relation(
-    fields: [userId],
-    references: [id]
-  )
+  user   User?   @relation(fields: [userId], references: [id])
 
   // ========================================
   // VOLUNTEER
   // ========================================
 
   volunteerId String?
-
-  volunteer Volunteer? @relation(
-    fields: [volunteerId],
-    references: [id]
-  )
+  volunteer   Volunteer? @relation(fields: [volunteerId], references: [id])
 
   // ========================================
   // VOTER
   // ========================================
 
   voterId String?
-
-  voter Voter? @relation(
-    fields: [voterId],
-    references: [id]
-  )
+  voter   Voter?  @relation(fields: [voterId], references: [id])
 
   createdAt DateTime @default(now())
 
@@ -461,18 +410,10 @@ model ElectionDayUpdate {
   id String @id @default(uuid())
 
   boothId String
-
-  booth Booth @relation(
-    fields: [boothId],
-    references: [id]
-  )
+  booth   Booth  @relation(fields: [boothId], references: [id])
 
   volunteerId String
-
-  volunteer Volunteer @relation(
-    fields: [volunteerId],
-    references: [id]
-  )
+  volunteer   Volunteer @relation(fields: [volunteerId], references: [id])
 
   turnout Int?
   note    String?
@@ -494,18 +435,10 @@ model ElectionDayAlert {
   id String @id @default(uuid())
 
   boothId String
-
-  booth Booth @relation(
-    fields: [boothId],
-    references: [id]
-  )
+  booth   Booth  @relation(fields: [boothId], references: [id])
 
   volunteerId String
-
-  volunteer Volunteer @relation(
-    fields: [volunteerId],
-    references: [id]
-  )
+  volunteer   Volunteer @relation(fields: [volunteerId], references: [id])
 
   type AlertType
   note String

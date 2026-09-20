@@ -68,7 +68,7 @@ export async function getUser(
   try {
     const user =
       await getUserById(
-        req.params.id
+        String(req.params.id)
       );
 
     return res.json({
@@ -112,7 +112,7 @@ export async function editUser(
 
     const user =
       await updateUser(
-        req.params.id,
+        String(req.params.id),
         input,
         req.user!.id
       );
@@ -154,7 +154,7 @@ export async function changeUserStatus(
 
     const user =
       await updateUserStatus(
-        req.params.id,
+        String(req.params.id),
         input,
         req.user!.id
       );
@@ -196,7 +196,7 @@ export async function changeUserPassword(
 
     const result =
       await updateUserPassword(
-        req.params.id,
+        String(req.params.id),
         input.newPassword,
         req.user!.id
       );

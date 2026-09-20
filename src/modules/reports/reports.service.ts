@@ -607,10 +607,17 @@ export function createExcelBuffer(
 export function createCsvBuffer(
   rows: Record<string, unknown>[]
 ): Buffer {
+  const workbook = XLSX.utils.book_new();
   const worksheet =
     XLSX.utils.json_to_sheet(rows);
 
-  return XLSX.write(worksheet, {
+  XLSX.utils.book_append_sheet(
+    workbook,
+    worksheet,
+    "Sheet1"
+  );
+
+  return XLSX.write(workbook, {
     type: "buffer",
     bookType: "csv",
   });
@@ -628,7 +635,8 @@ export async function createExportAudit(
     data: {
       action,
       entity: "REPORT",
-      details,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      details: details as any,
       userId,
     },
   });
