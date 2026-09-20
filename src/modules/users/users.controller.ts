@@ -1,90 +1,133 @@
-import { Request, Response } from "express";
 import {
-  createUser,
+  Request,
+  Response,
+} from "express";
+
+import type {
+  AuthRequest,
+} from "../../middleware/auth.middleware.js";
+
+import {
+  userListSchema,
+  updateUserSchema,
+  updateStatusSchema,
+  updatePasswordSchema,
+} from "./users.validation.js";
+
+import {
   getUsers,
   getUserById,
   updateUser,
-} from "./users.service";
-import {
-  createUserSchema,
-  updateUserSchema,
-} from "./users.validation";
+  updateUserStatus,
+  updateUserPassword,
+} from "./users.service.js";
 
-export async function create(req: Request, res: Response) {
+/**
+ * GET /api/users
+ */
+export async function listUsers(
+  req: Request,
+  res: Response
+) {
   try {
-    const input = createUserSchema.parse(req.body);
+    const input =
+      userListSchema.parse(
+        req.query
+      );
 
-    const user = await createUser(input);
+    const result =
+      await getUsers(input);
 
-    return res.status(201).json({
+    return res.json({
       success: true,
-      message: "User created successfully",
-      data: { user },
+      data: result,
     });
   } catch (error) {
-    console.error(error);
+    console.error(
+      "List users error:",
+      error
+    );
 
     return res.status(400).json({
       success: false,
       message:
         error instanceof Error
           ? error.message
-          : "Failed to create user",
+          : "Failed to fetch users",
     });
   }
 }
 
-export async function getAll(_req: Request, res: Response) {
+/**
+ * GET /api/users/:id
+ */
+export async function getUser(
+  req: Request,
+  res: Response
+) {
   try {
-    const users = await getUsers();
+    const user =
+      await getUserById(
+        req.params.id
+      );
 
-    return res.status(200).json({
+    return res.json({
       success: true,
-      data: { users },
+      data: user,
     });
   } catch (error) {
-    console.error(error);
+    console.error(
+      "Get user error:",
+      error
+    );
 
-    return res.status(500).json({
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Failed to fetch user";
+
+    return res.status(
+      message === "User not found"
+        ? 404
+        : 400
+    ).json({
       success: false,
-      message: "Failed to fetch users",
+      message,
     });
   }
 }
 
-export async function getOne(req: Request, res: Response) {
+/**
+ * PATCH /api/users/:id
+ */
+export async function editUser(
+  req: AuthRequest,
+  res: Response
+) {
   try {
+    const input =
+      updateUserSchema.parse(
+        req.body
+      );
 
-    const user = await getUserById(String(req.params.id));
+    const user =
+      await updateUser(
+        req.params.id,
+        input,
+        req.user!.id
+      );
 
-    return res.status(200).json({
+    return res.json({
       success: true,
-      data: { user },
-    });
-  } catch (error) {
-    return res.status(404).json({
-      success: false,
       message:
-        error instanceof Error
-          ? error.message
-          : "User not found",
-    });
-  }
-}
-
-export async function update(req: Request, res: Response) {
-  try {
-    const input = updateUserSchema.parse(req.body);
-
-   const user = await updateUser(String(req.params.id), input);
-
-    return res.status(200).json({
-      success: true,
-      message: "User updated successfully",
-      data: { user },
+        "User updated successfully",
+      data: user,
     });
   } catch (error) {
-    console.error(error);
+    console.error(
+      "Update user error:",
+      error
+    );
 
     return res.status(400).json({
       success: false,
@@ -96,4 +139,84 @@ export async function update(req: Request, res: Response) {
   }
 }
 
+/**
+ * PATCH /api/users/:id/status
+ */
+export async function changeUserStatus(
+  req: AuthRequest,
+  res: Response
+) {
+  try {
+    const input =
+      updateStatusSchema.parse(
+        req.body
+      );
 
+    const user =
+      await updateUserStatus(
+        req.params.id,
+        input,
+        req.user!.id
+      );
+
+    return res.json({
+      success: true,
+      message:
+        "User status updated successfully",
+      data: user,
+    });
+  } catch (error) {
+    console.error(
+      "Update user status error:",
+      error
+    );
+
+    return res.status(400).json({
+      success: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Failed to update user status",
+    });
+  }
+}
+
+/**
+ * PATCH /api/users/:id/password
+ */
+export async function changeUserPassword(
+  req: AuthRequest,
+  res: Response
+) {
+  try {
+    const input =
+      updatePasswordSchema.parse(
+        req.body
+      );
+
+    const result =
+      await updateUserPassword(
+        req.params.id,
+        input.newPassword,
+        req.user!.id
+      );
+
+    return res.json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    console.error(
+      "Update password error:",
+      error
+    );
+
+    return res.status(400).json({
+      success: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Failed to update password",
+    });
+  }
+}
