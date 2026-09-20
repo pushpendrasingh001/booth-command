@@ -1,4 +1,5 @@
 import { prisma } from "../../config/prisma";
+import { hashPassword } from "../../utils/password";
 
 import {
   CreateVolunteerInput,
@@ -6,7 +7,7 @@ import {
 } from "./volunteer.validation";
 
 /**
- * Common booth response
+ * Common booth response select
  */
 const boothSelect = {
   id: true,
@@ -15,6 +16,16 @@ const boothSelect = {
   village: true,
   assemblyId: true,
 };
+
+/**
+ * Strip password from a volunteer object before returning to client
+ */
+function stripPassword<
+  T extends { password?: string }
+>(volunteer: T): Omit<T, "password"> {
+  const { password: _password, ...safe } = volunteer;
+  return safe;
+}
 
 /**
  * Create volunteer
@@ -27,10 +38,10 @@ export async function createVolunteer(
    * Check duplicate mobile
    */
   const existing = await prisma.volunteer.findUnique({
-      where: {
-        mobile: input.mobile,
-      },
-    });
+    where: {
+      mobile: input.mobile,
+    },
+  });
 
   if (existing) {
     throw new Error(
@@ -38,11 +49,19 @@ export async function createVolunteer(
     );
   }
 
+  /**
+   * Hash password before storing
+   */
+  const hashedPassword = await hashPassword(
+    input.password
+  );
+
   const volunteer =
     await prisma.volunteer.create({
       data: {
         name: input.name,
         mobile: input.mobile,
+        password: hashedPassword,
       },
 
       include: {
@@ -74,14 +93,14 @@ export async function createVolunteer(
     },
   });
 
-  return volunteer;
+  return stripPassword(volunteer);
 }
 
 /**
- * Get all volunteers
+ * Get all volunteers — password never returned
  */
 export async function getVolunteers() {
-  return prisma.volunteer.findMany({
+  const volunteers = await prisma.volunteer.findMany({
     orderBy: {
       createdAt: "desc",
     },
@@ -92,10 +111,12 @@ export async function getVolunteers() {
       },
     },
   });
+
+  return volunteers.map(stripPassword);
 }
 
 /**
- * Get volunteer by ID
+ * Get volunteer by ID — password never returned
  */
 export async function getVolunteerById(
   id: string
@@ -114,16 +135,16 @@ export async function getVolunteerById(
     });
 
   if (!volunteer) {
-    throw new Error(
-      "Volunteer not found"
-    );
+    throw new Error("Volunteer not found");
   }
 
-  return volunteer;
+  return stripPassword(volunteer);
 }
 
 /**
  * Update volunteer
+ * If password is provided, it is hashed before storing.
+ * Password is never returned.
  */
 export async function updateVolunteer(
   id: string,
@@ -131,7 +152,7 @@ export async function updateVolunteer(
   adminUserId: string
 ) {
   /**
-   * Check volunteer
+   * Check volunteer exists
    */
   const existing =
     await prisma.volunteer.findUnique({
@@ -141,9 +162,7 @@ export async function updateVolunteer(
     });
 
   if (!existing) {
-    throw new Error(
-      "Volunteer not found"
-    );
+    throw new Error("Volunteer not found");
   }
 
   /**
@@ -168,13 +187,41 @@ export async function updateVolunteer(
     }
   }
 
+  /**
+   * Build update data — hash password if provided
+   */
+  const updateData: {
+    name?: string;
+    mobile?: string;
+    password?: string;
+    status?: "ACTIVE" | "INACTIVE";
+  } = {};
+
+  if (input.name !== undefined) {
+    updateData.name = input.name;
+  }
+
+  if (input.mobile !== undefined) {
+    updateData.mobile = input.mobile;
+  }
+
+  if (input.status !== undefined) {
+    updateData.status = input.status;
+  }
+
+  if (input.password !== undefined) {
+    updateData.password = await hashPassword(
+      input.password
+    );
+  }
+
   const updatedVolunteer =
     await prisma.volunteer.update({
       where: {
         id,
       },
 
-      data: input,
+      data: updateData,
 
       include: {
         booth: {
@@ -184,7 +231,7 @@ export async function updateVolunteer(
     });
 
   /**
-   * Audit log
+   * Audit log — password change noted but hash never logged
    */
   await prisma.auditLog.create({
     data: {
@@ -198,13 +245,16 @@ export async function updateVolunteer(
 
       volunteerId: id,
 
-      details: JSON.parse(
-        JSON.stringify(input)
-      ),
+      details: {
+        name: input.name,
+        mobile: input.mobile,
+        status: input.status,
+        passwordChanged: input.password !== undefined,
+      },
     },
   });
 
-  return updatedVolunteer;
+  return stripPassword(updatedVolunteer);
 }
 
 /**
@@ -236,9 +286,7 @@ export async function assignBooth(
     });
 
   if (!volunteer) {
-    throw new Error(
-      "Volunteer not found"
-    );
+    throw new Error("Volunteer not found");
   }
 
   /**
@@ -257,13 +305,11 @@ export async function assignBooth(
     });
 
   if (!booth) {
-    throw new Error(
-      "Booth not found"
-    );
+    throw new Error("Booth not found");
   }
 
   /**
-   * Booth already assigned
+   * Booth already assigned to another volunteer
    */
   if (
     booth.volunteerId &&
@@ -287,11 +333,9 @@ export async function assignBooth(
   }
 
   /**
-   * Already assigned
+   * Already assigned — idempotent
    */
-  if (
-    volunteer.booth?.id === boothId
-  ) {
+  if (volunteer.booth?.id === boothId) {
     return booth;
   }
 
@@ -334,8 +378,7 @@ export async function assignBooth(
    */
   await prisma.auditLog.create({
     data: {
-      action:
-        "VOLUNTEER_BOOTH_ASSIGNED",
+      action: "VOLUNTEER_BOOTH_ASSIGNED",
 
       entity: "BOOTH",
 
@@ -347,11 +390,9 @@ export async function assignBooth(
 
       details: {
         boothId,
-        boothNumber:
-          booth.boothNumber,
+        boothNumber: booth.boothNumber,
         volunteerId,
-        volunteerName:
-          volunteer.name,
+        volunteerName: volunteer.name,
       },
     },
   });
@@ -378,9 +419,7 @@ export async function unassignBooth(
     });
 
   if (!volunteer) {
-    throw new Error(
-      "Volunteer not found"
-    );
+    throw new Error("Volunteer not found");
   }
 
   if (!volunteer.booth) {
@@ -389,8 +428,7 @@ export async function unassignBooth(
     );
   }
 
-  const boothId =
-    volunteer.booth.id;
+  const boothId = volunteer.booth.id;
 
   const updatedBooth =
     await prisma.booth.update({
@@ -420,8 +458,7 @@ export async function unassignBooth(
    */
   await prisma.auditLog.create({
     data: {
-      action:
-        "VOLUNTEER_BOOTH_UNASSIGNED",
+      action: "VOLUNTEER_BOOTH_UNASSIGNED",
 
       entity: "BOOTH",
 
@@ -433,8 +470,7 @@ export async function unassignBooth(
 
       details: {
         boothId,
-        boothNumber:
-          volunteer.booth.boothNumber,
+        boothNumber: volunteer.booth.boothNumber,
       },
     },
   });

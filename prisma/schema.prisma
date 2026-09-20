@@ -142,12 +142,11 @@ model Booth {
 // ========================================
 
 model Volunteer {
-  id     String          @id @default(uuid())
-  name   String
-  mobile String          @unique
-  status VolunteerStatus @default(ACTIVE)
-
-  firebaseUid String? @unique
+  id       String          @id @default(uuid())
+  name     String
+  mobile   String          @unique
+  password String
+  status   VolunteerStatus @default(ACTIVE)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

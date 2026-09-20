@@ -26,6 +26,7 @@ router.use(authMiddleware);
  * /api/volunteers:
  *   post:
  *     summary: Create a new volunteer
+ *     description: Admin creates a volunteer with name, mobile, and an initial password. The password is hashed with bcrypt and never returned in responses.
  *     tags: [Volunteers]
  *     security:
  *       - BearerAuth: []
@@ -38,19 +39,26 @@ router.use(authMiddleware);
  *             required:
  *               - name
  *               - mobile
+ *               - password
  *             properties:
  *               name:
  *                 type: string
  *                 minLength: 2
  *                 maxLength: 100
- *                 example: Rajesh Kumar
+ *                 example: Rahul Kumar
  *               mobile:
  *                 type: string
  *                 pattern: ^[6-9]\d{9}$
  *                 example: "9876543210"
+ *               password:
+ *                 type: string
+ *                 format: password
+ *                 minLength: 6
+ *                 description: Initial password for volunteer (stored as bcrypt hash)
+ *                 example: "Rahul@123"
  *     responses:
  *       201:
- *         description: Volunteer created successfully
+ *         description: Volunteer created successfully — password is never returned
  *         content:
  *           application/json:
  *             schema:
@@ -181,6 +189,7 @@ router.get(
  * /api/volunteers/{id}:
  *   patch:
  *     summary: Update a volunteer
+ *     description: Admin can update volunteer name, mobile, password, or status. If password is provided it is re-hashed with bcrypt. Password is never returned.
  *     tags: [Volunteers]
  *     security:
  *       - BearerAuth: []
@@ -202,18 +211,24 @@ router.get(
  *                 type: string
  *                 minLength: 2
  *                 maxLength: 100
- *                 example: Rajesh Kumar Updated
+ *                 example: Rahul Kumar Updated
  *               mobile:
  *                 type: string
  *                 pattern: ^[6-9]\d{9}$
  *                 example: "9876543211"
+ *               password:
+ *                 type: string
+ *                 format: password
+ *                 minLength: 6
+ *                 description: New password (stored as bcrypt hash, never returned)
+ *                 example: "NewPass@456"
  *               status:
  *                 type: string
  *                 enum: [ACTIVE, INACTIVE]
  *                 example: ACTIVE
  *     responses:
  *       200:
- *         description: Volunteer updated successfully
+ *         description: Volunteer updated successfully — password is never returned
  *         content:
  *           application/json:
  *             schema:

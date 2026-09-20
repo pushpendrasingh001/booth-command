@@ -16,6 +16,11 @@ export const createVolunteerSchema = z.object({
       /^[6-9]\d{9}$/,
       "Invalid Indian mobile number"
     ),
+
+  password: z
+    .string()
+    .min(6, "Password must be at least 6 characters")
+    .max(128, "Password too long"),
 });
 
 /**
@@ -35,6 +40,12 @@ export const updateVolunteerSchema = z.object({
       /^[6-9]\d{9}$/,
       "Invalid Indian mobile number"
     )
+    .optional(),
+
+  password: z
+    .string()
+    .min(6, "Password must be at least 6 characters")
+    .max(128, "Password too long")
     .optional(),
 
   status: z

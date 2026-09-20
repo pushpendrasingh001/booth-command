@@ -1,7 +1,19 @@
 import { z } from "zod";
 
+/**
+ * Volunteer login — Mobile + Password
+ */
 export const volunteerLoginSchema = z.object({
-  idToken: z.string().min(1, "Firebase ID token is required"),
+  mobile: z
+    .string()
+    .regex(
+      /^[6-9]\d{9}$/,
+      "Invalid Indian mobile number"
+    ),
+
+  password: z
+    .string()
+    .min(6, "Password must be at least 6 characters"),
 });
 
 export type VolunteerLoginInput =

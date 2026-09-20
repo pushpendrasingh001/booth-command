@@ -361,6 +361,8 @@ const options: swaggerJSDoc.Options = {
 
         Volunteer: {
           type: "object",
+          description:
+            "Volunteer safe response object. Password is never included.",
           properties: {
             id: {
               type: "string",
@@ -368,7 +370,7 @@ const options: swaggerJSDoc.Options = {
             },
             name: {
               type: "string",
-              example: "Rajesh Kumar",
+              example: "Rahul Kumar",
             },
             mobile: {
               type: "string",
@@ -378,10 +380,6 @@ const options: swaggerJSDoc.Options = {
               type: "string",
               enum: ["ACTIVE", "INACTIVE"],
               example: "ACTIVE",
-            },
-            firebaseUid: {
-              type: "string",
-              nullable: true,
             },
             createdAt: {
               type: "string",
