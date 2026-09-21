@@ -3,13 +3,17 @@ import jwt, {
   SignOptions,
 } from "jsonwebtoken";
 
-const jwtSecret = process.env.JWT_SECRET;
+function getVolunteerJwtSecret(): string {
+  const secret = process.env.JWT_SECRET;
 
-if (!jwtSecret) {
-  throw new Error("JWT_SECRET is not defined");
+  if (!secret) {
+    throw new Error("JWT_SECRET is not defined");
+  }
+
+  return secret;
 }
 
-const JWT_SECRET: string = jwtSecret;
+const JWT_SECRET: string = getVolunteerJwtSecret();
 
 export interface VolunteerJwtPayload {
   volunteerId: string;
